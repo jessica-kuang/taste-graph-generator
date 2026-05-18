@@ -1,0 +1,130 @@
+{
+    "brands": [
+      {
+        "name": "Sezane",
+        "category": "fashion",
+        "aesthetic_tags": ["scholarly chic", "urban nostalgia", "romantic", "effortless chic"],
+        "motif_tags": ["tailored silhouettes", "feminine details", "Parisian"],
+        "price_point": "mid",
+        "description": "Parisian-inspired feminine pieces with romantic details and relaxed tailoring",
+        "url": "https://www.sezane.com"
+      },
+      {
+        "name": "Sea New York",
+        "category": "fashion",
+        "aesthetic_tags": ["dreamy ethereal", "romantic", "scholarly chic"],
+        "motif_tags": ["lace", "ruffles", "soft silhouettes", "vintage-inspired"],
+        "price_point": "mid-high",
+        "description": "Romantic, feminine pieces with vintage-inspired details and dreamy silhouettes",
+        "url": "https://www.sea-ny.com"
+      },
+      {
+        "name": "Free People",
+        "category": "fashion",
+        "aesthetic_tags": ["dreamy ethereal", "playful maximalism", "bohemian"],
+        "motif_tags": ["flowing fabrics", "embroidery", "texture", "layering"],
+        "price_point": "mid",
+        "description": "Bohemian-inspired pieces with rich textures, embroidery, and free-spirited silhouettes",
+        "url": "https://www.freepeople.com"
+      },
+      {
+        "name": "Lisa Says Gah",
+        "category": "fashion",
+        "aesthetic_tags": ["playful maximalism", "urban nostalgia", "eclectic"],
+        "motif_tags": ["bold prints", "color", "quirky details", "vintage"],
+        "price_point": "mid",
+        "description": "Eclectic, playful pieces that celebrate color, print, and joyful dressing",
+        "url": "https://www.lisasaysgah.com"
+      },
+      {
+        "name": "Damson Madder",
+        "category": "fashion",
+        "aesthetic_tags": ["urban nostalgia", "scholarly chic", "quiet luxury"],
+        "motif_tags": ["earthy tones", "relaxed tailoring", "vintage-inspired", "understated"],
+        "price_point": "mid",
+        "description": "Thoughtfully designed pieces in earthy, muted tones with a relaxed, vintage sensibility",
+        "url": "https://www.damsonmadder.com"
+      },
+      {
+        "name": "Realisation Par",
+        "category": "fashion",
+        "aesthetic_tags": ["dreamy ethereal", "romantic", "effortless chic"],
+        "motif_tags": ["fluid silhouettes", "floral", "feminine", "light fabrics"],
+        "price_point": "mid",
+        "description": "Fluid, feminine pieces in delicate prints with an effortlessly romantic feel",
+        "url": "https://www.realisationpar.com"
+      },
+      {
+        "name": "Rohe",
+        "category": "fashion",
+        "aesthetic_tags": ["quiet luxury", "scholarly chic", "urban nostalgia"],
+        "motif_tags": ["clean lines", "tailored", "understated", "architectural"],
+        "price_point": "high",
+        "description": "Understated, architectural pieces with a quiet luxury sensibility and refined tailoring",
+        "url": "https://www.rohe.eu"
+      },
+      {
+        "name": "Apiece Apart",
+        "category": "fashion",
+        "aesthetic_tags": ["urban nostalgia", "scholarly chic", "effortless chic"],
+        "motif_tags": ["relaxed silhouettes", "earthy palette", "minimal", "timeless"],
+        "price_point": "high",
+        "description": "Relaxed, considered pieces in natural palettes designed for effortless everyday dressing",
+        "url": "https://www.apieceapart.com"
+      },
+      {
+        "name": "Tower 28",
+        "category": "beauty",
+        "aesthetic_tags": ["dreamy ethereal", "effortless chic", "skin-first"],
+        "motif_tags": ["clean beauty", "soft glow", "minimal", "warm tones"],
+        "price_point": "mid",
+        "description": "Clean, sensitive-skin-friendly makeup that enhances natural beauty with a soft, dewy finish",
+        "url": "https://tower28beauty.com"
+      },
+      {
+        "name": "Rare Beauty",
+        "category": "beauty",
+        "aesthetic_tags": ["soft glam", "playful maximalism", "effortless chic"],
+        "motif_tags": ["soft color", "dewy finish", "accessible", "self-expression"],
+        "price_point": "mid",
+        "description": "Soft, buildable makeup focused on self-expression and enhancing natural features",
+        "url": "https://www.rarebeauty.com"
+      },
+      {
+        "name": "Westman Atelier",
+        "category": "beauty",
+        "aesthetic_tags": ["quiet luxury", "scholarly chic", "editorial"],
+        "motif_tags": ["warm undertones", "skin-first", "editorial", "clean ingredients"],
+        "price_point": "high",
+        "description": "Editorial-quality clean beauty with a focus on warm, skin-enhancing formulas",
+        "url": "https://www.westmanatelier.com"
+      },
+      {
+        "name": "Poketo",
+        "category": "lifestyle",
+        "aesthetic_tags": ["playful maximalism", "urban nostalgia", "creative identity"],
+        "motif_tags": ["color", "art", "stationery", "design-forward"],
+        "price_point": "mid",
+        "description": "Design-forward lifestyle objects and stationery celebrating art, color, and creative living",
+        "url": "https://www.poketo.com"
+      },
+      {
+        "name": "Coming Soon New York",
+        "category": "lifestyle",
+        "aesthetic_tags": ["urban nostalgia", "playful maximalism", "eclectic"],
+        "motif_tags": ["vintage", "color", "editorial objects", "NYC energy"],
+        "price_point": "mid",
+        "description": "Eclectic lifestyle objects and home goods with a distinctly New York editorial sensibility",
+        "url": "https://www.comingsoonnewyor.com"
+      },
+      {
+        "name": "Yield Design",
+        "category": "lifestyle",
+        "aesthetic_tags": ["quiet luxury", "scholarly chic", "minimal"],
+        "motif_tags": ["natural materials", "craftsmanship", "understated", "warm wood"],
+        "price_point": "high",
+        "description": "Beautifully crafted minimal objects in natural materials designed to last a lifetime",
+        "url": "https://www.yielddesign.co"
+      }
+    ]
+  }
