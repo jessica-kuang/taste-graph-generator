@@ -85,9 +85,6 @@ pip install -r requirements.txt
 
 # install CLIP
 pip install git+https://github.com/openai/CLIP.git
-
-# set your Anthropic API key
-export ANTHROPIC_API_KEY=your-key-here
 ```
 
 **Add your images** to `data/uploads/` — aim for 20–50 images that feel like you. Screenshots, saved photos, Pinterest exports, anything.
