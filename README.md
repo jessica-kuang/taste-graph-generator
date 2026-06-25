@@ -1,6 +1,4 @@
 # Taste Graph Generator
-
-# The Edit
 ### A personalized taste graph powered by your own data
 
 ---
