@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Edit — Jessica · Issue No. 01</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;1,400&family=DM+Sans:wght@300;400&family=Caveat:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #F0EAE0;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 300;
+    color: #2C1F14;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    padding: 1rem 2rem;
+    border-bottom: 0.5px solid #C4B49E;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #F0EAE0;
+  }
+
+  .header-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 18px;
+    color: #2C1F14;
+  }
+
+  .header-meta {
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #A89880;
+  }
+
+  .main {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+  }
+
+  canvas {
+    width: 100%;
+    height: 100%;
+    cursor: grab;
+  }
+
+  canvas:active { cursor: grabbing; }
+
+  .panel {
+    position: absolute;
+    right: 24px;
+    top: 24px;
+    background: #EDE4D3;
+    border: 0.5px solid #C4B49E;
+    border-radius: 8px;
+    padding: 1.25rem;
+    width: 220px;
+    font-size: 12px;
+    transition: opacity 0.2s;
+  }
+
+  .panel-label {
+    font-size: 9px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: #A89880;
+    margin-bottom: 8px;
+  }
+
+  .panel-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 16px;
+    color: #2C1F14;
+    margin-bottom: 4px;
+    line-height: 1.3;
+  }
+
+  .panel-type {
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #A89880;
+    margin-bottom: 10px;
+  }
+
+  .panel-body {
+    font-size: 12px;
+    color: #5C4A38;
+    line-height: 1.7;
+  }
+
+  .panel-actions {
+    margin-top: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .panel-btn {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    padding: 4px 10px;
+    background: #E4D9CC;
+    border: 0.5px solid #C4B49E;
+    color: #5C4A38;
+    border-radius: 4px;
+    cursor: pointer;
+    text-decoration: none;
+  }
+
+  .panel-btn:hover { background: #D9CCBC; }
+
+  .legend {
+    position: absolute;
+    left: 24px;
+    bottom: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    background: #EDE4D3;
+    border: 0.5px solid #C4B49E;
+    border-radius: 8px;
+    padding: 1rem;
+  }
+
+  .legend-title {
+    font-size: 9px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: #A89880;
+    margin-bottom: 4px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #7A6855;
+  }
+
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .hint {
+    position: absolute;
+    left: 24px;
+    top: 24px;
+    font-family: 'Caveat', cursive;
+    font-size: 14px;
+    color: #B5A08A;
+  }
+
+  .refresh-badge {
+    position: absolute;
+    right: 24px;
+    bottom: 24px;
+    background: #EDE4D3;
+    border: 0.5px solid #C4B49E;
+    border-radius: 8px;
+    padding: 0.6rem 1rem;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: #A89880;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-title">The Edit — Jessica</div>
+  <div class="header-meta">Issue No. 01 &nbsp;·&nbsp; May 2026 &nbsp;·&nbsp; Faded Manuscript</div>
+</header>
+
+<div class="main">
+  <canvas id="c"></canvas>
+
+  <div class="hint">drag to explore · click a node to inspect</div>
+
+  <div class="panel" id="panel">
+    <div class="panel-label">your taste graph</div>
+    <div class="panel-name">jessica</div>
+    <div class="panel-type">issue no. 01 · may 2026</div>
+    <div class="panel-body">click any node to explore your taste connections — archetypes, motifs, brands, reads, and palette</div>
+  </div>
+
+  <div class="legend">
+    <div class="legend-title">node types</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#4E3D2C"></div>archetype</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#8C8477"></div>motif</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#B5A48F"></div>brand</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#6E6457"></div>reading</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#C4B49E"></div>palette</div>
+  </div>
+
+  <div class="refresh-badge">next refresh · jun 2026</div>
+</div>
+
+<script>
+const nodeData = [
+  {id:0, label:"dreamy ethereal", type:"archetype", desc:"Your most ethereal cluster — light, fluid, suspended between states. Shows up in the way you're drawn to images of light in motion.", connections:["Sea New York","Realisation Par","light refraction","water ripples","golden hour","faded manuscript"]},
+  {id:1, label:"scholarly chic", type:"archetype", desc:"The intellectual thread running through your taste. Structure meets softness — books as objects, geometric precision, Parisian ease.", connections:["Sezane","Damson Madder","stacked books","geometric tiles","Wien–Paris I","What Is Written in Stone"]},
+  {id:2, label:"urban nostalgia", type:"archetype", desc:"A longing for textured city life — worn-in, layered, alive. The aesthetic of places that remember themselves.", connections:["Damson Madder","Coming Soon NY","geometric tiles","Wien–Paris I","nostalgic crafts"]},
+  {id:3, label:"playful maximalism", type:"archetype", desc:"The wildcard in your profile. Color, joy, and deliberate excess — the part of you that doesn't want to be too serious.", connections:["Lisa Says Gah","Poketo","nostalgic crafts","faded manuscript"]},
+  {id:4, label:"light refraction", type:"motif", desc:"Appears across your images — the way light bends through glass, water, or atmosphere. A recurring visual obsession."},
+  {id:5, label:"water ripples", type:"motif", desc:"Stillness-in-motion. The surface of something calm but alive. Present in your dreamy ethereal cluster consistently."},
+  {id:6, label:"stacked books", type:"motif", desc:"Knowledge as aesthetic object — not just reading but the visual pleasure of books arranged, accumulated, displayed."},
+  {id:7, label:"golden hour", type:"motif", desc:"Warmth as a visual language. Present across nearly all your clusters — the light you're consistently drawn to."},
+  {id:8, label:"geometric tiles", type:"motif", desc:"Structure and pattern — the urban, architectural side of your taste. Appears in both scholarly chic and urban nostalgia."},
+  {id:9, label:"Sezane", type:"brand", desc:"Parisian-inspired feminine basics with romantic details and relaxed tailoring. Mid-range. Very you.", url:"https://www.sezane.com"},
+  {id:10, label:"Sea New York", type:"brand", desc:"Romantic, dreamy silhouettes with vintage-inspired details and light fabrics. Mid-high range.", url:"https://www.sea-ny.com"},
+  {id:11, label:"Damson Madder", type:"brand", desc:"Thoughtfully designed pieces in earthy, muted tones with a relaxed vintage sensibility.", url:"https://www.damsonmadder.com"},
+  {id:12, label:"Lisa Says Gah", type:"brand", desc:"Eclectic, playful pieces that celebrate color, print, and joyful dressing.", url:"https://www.lisasaysgah.com"},
+  {id:13, label:"Poketo", type:"brand", desc:"Design-forward lifestyle objects and stationery celebrating art, color, and creative living.", url:"https://www.poketo.com"},
+  {id:14, label:"Wien–Paris I", type:"reading", desc:"On cities as emotional archives and what it means to carry a place inside you long after you've left. — A Private Correspondence", url:"https://fabioaprivatecorrespondence.substack.com/p/wienparis-i"},
+  {id:15, label:"nostalgic crafts", type:"reading", desc:"A meditation on the handmade, the slow, and the things we choose to preserve. — Gabrielle Dubois Meloff", url:"https://gabrielledubois.substack.com/p/nostalgic-crafts-worth-keeping"},
+  {id:16, label:"What Is Written in Stone", type:"reading", desc:"On permanence, memory, and the quiet defiance of making something that lasts. — A Private Correspondence", url:"https://fabioaprivatecorrespondence.substack.com/p/what-is-written-in-stone"},
+  {id:17, label:"faded manuscript", type:"palette", desc:"#231911 · #4E3D2C · #6E6457 · #8C8477 · #B5A48F · #D0C8BE\n\nWarm, muted, antiquarian. The colors of old paper and candlelight."},
+];
+
+const edges = [
+  [0,4],[0,5],[0,7],[0,10],[0,9],[0,17],
+  [1,6],[1,7],[1,11],[1,9],[1,14],[1,16],
+  [2,8],[2,11],[2,14],[2,15],
+  [3,12],[3,13],[3,15],[3,17],
+  [4,5],[7,9],[7,10],[6,14],[6,16],[5,15],[8,11],
+  [0,17],[1,17],[2,17],[3,17],
+];
+
+const colors = {archetype:"#4E3D2C", motif:"#8C8477", brand:"#B5A48F", reading:"#6E6457", palette:"#C4B49E"};
+const radii = {archetype:26, motif:16, brand:18, reading:16, palette:22};
+
+const canvas = document.getElementById("c");
+const ctx = canvas.getContext("2d");
+const panel = document.getElementById("panel");
+
+let W, H;
+let drag = null, panOffset = {x:0,y:0}, panStart = {x:0,y:0};
+let isPanning = false;
+let selected = null;
+
+const sim = nodeData.map((n,i) => {
+  const angle = (i / nodeData.length) * Math.PI * 2;
+  const r = 200 + Math.random() * 80;
+  return {...n, x: Math.cos(angle)*r, y: Math.sin(angle)*r, vx:0, vy:0};
+});
+
+function resize() {
+  W = canvas.width = canvas.offsetWidth;
+  H = canvas.height = canvas.offsetHeight;
+}
+
+function tx(x){ return x + W/2 + panOffset.x; }
+function ty(y){ return y + H/2 + panOffset.y; }
+
+function nodeAt(mx,my){
+  return sim.find(n => {
+    const r = radii[n.type]||16;
+    const dx = mx-tx(n.x), dy = my-ty(n.y);
+    return Math.sqrt(dx*dx+dy*dy) < r+6;
+  });
+}
+
+function runForces(){
+  const k = 120;
+  sim.forEach(a => {
+    sim.forEach(b => {
+      if(a.id===b.id) return;
+      const dx = a.x-b.x, dy = a.y-b.y;
+      const d = Math.max(Math.sqrt(dx*dx+dy*dy),1);
+      const f = (k*k)/d;
+      a.vx += dx/d*f*0.001;
+      a.vy += dy/d*f*0.001;
+    });
+  });
+
+  edges.forEach(([ai,bi]) => {
+    const a = sim[ai], b = sim[bi];
+    const dx = b.x-a.x, dy = b.y-a.y;
+    const d = Math.max(Math.sqrt(dx*dx+dy*dy),1);
+    const target = 140;
+    const f = (d-target)*0.003;
+    a.vx += dx/d*f; a.vy += dy/d*f;
+    b.vx -= dx/d*f; b.vy -= dy/d*f;
+  });
+
+  sim.forEach(n => {
+    if(drag && drag.id===n.id) return;
+    n.vx *= 0.85; n.vy *= 0.85;
+    n.x += n.vx; n.y += n.vy;
+  });
+}
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+
+  edges.forEach(([ai,bi]) => {
+    const a=sim[ai], b=sim[bi];
+    ctx.beginPath();
+    ctx.moveTo(tx(a.x),ty(a.y));
+    ctx.lineTo(tx(b.x),ty(b.y));
+    ctx.strokeStyle="#D0C0AA";
+    ctx.lineWidth=0.75;
+    ctx.stroke();
+  });
+
+  sim.forEach(n => {
+    const r = radii[n.type]||16;
+    const isSel = selected===n.id;
+    const isConn = selected!==null && edges.some(([a,b]) =>
+      (sim[a].id===selected&&sim[b].id===n.id)||(sim[b].id===selected&&sim[a].id===n.id)
+    );
+
+    ctx.beginPath();
+    ctx.arc(tx(n.x),ty(n.y),r,0,Math.PI*2);
+    ctx.fillStyle = isSel ? "#2C1F14" : isConn ? "#6B5744" : colors[n.type];
+    ctx.fill();
+
+    if(isSel){
+      ctx.strokeStyle="#2C1F14";
+      ctx.lineWidth=2;
+      ctx.stroke();
+    }
+
+    ctx.fillStyle = "#F0EAE0";
+    ctx.textAlign="center";
+    ctx.textBaseline="middle";
+    const words = n.label.split(" ");
+    const fs = n.type==="archetype" ? 11 : 9;
+    ctx.font = `${n.type==="archetype"?"500 ":""}${fs}px 'DM Sans', sans-serif`;
+
+    if(words.length===1){
+      ctx.fillText(n.label, tx(n.x), ty(n.y));
+    } else if(words.length===2){
+      ctx.fillText(words[0], tx(n.x), ty(n.y)-5);
+      ctx.fillText(words[1], tx(n.x), ty(n.y)+6);
+    } else {
+      ctx.fillText(words.slice(0,2).join(" "), tx(n.x), ty(n.y)-5);
+      ctx.fillText(words.slice(2).join(" "), tx(n.x), ty(n.y)+6);
+    }
+  });
+}
+
+function showPanel(n){
+  selected = n.id;
+  const connNodes = edges
+    .filter(([a,b]) => sim[a].id===n.id||sim[b].id===n.id)
+    .map(([a,b]) => sim[a].id===n.id ? sim[b].label : sim[a].label)
+    .slice(0,4);
+
+  let actions = "";
+  if(n.url) actions += `<a class="panel-btn" href="${n.url}" target="_blank">visit →</a>`;
+  if(n.type==="archetype") actions += `<span class="panel-btn" style="cursor:default">✦ core cluster</span>`;
+
+  panel.innerHTML = `
+    <div class="panel-label">${n.type}</div>
+    <div class="panel-name">${n.label}</div>
+    <div style="font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:#A89880;margin-bottom:10px;">
+      connected to: ${connNodes.join(", ")}
+    </div>
+    <div class="panel-body">${n.desc.replace(/\n/g,"<br>")}</div>
+    ${actions ? `<div class="panel-actions">${actions}</div>` : ""}
+  `;
+}
+
+canvas.addEventListener("mousedown", e => {
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX-rect.left, my = e.clientY-rect.top;
+  const n = nodeAt(mx,my);
+  if(n){ drag=n; showPanel(n); }
+  else { isPanning=true; panStart={x:mx-panOffset.x, y:my-panOffset.y}; }
+});
+
+canvas.addEventListener("mousemove", e => {
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX-rect.left, my = e.clientY-rect.top;
+  if(drag){ drag.x=mx-W/2-panOffset.x; drag.y=my-H/2-panOffset.y; }
+  else if(isPanning){ panOffset={x:mx-panStart.x, y:my-panStart.y}; }
+  canvas.style.cursor = nodeAt(mx,my)?"pointer":isPanning?"grabbing":"grab";
+});
+
+canvas.addEventListener("mouseup", ()=>{ drag=null; isPanning=false; });
+canvas.addEventListener("mouseleave", ()=>{ drag=null; isPanning=false; });
+
+window.addEventListener("resize", ()=>{ resize(); });
+resize();
+
+function loop(){
+  runForces();
+  draw();
+  requestAnimationFrame(loop);
+}
+loop();
+</script>
+</body>
+</html>

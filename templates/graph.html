@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Edit — Your Taste Graph</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;1,400&family=DM+Sans:wght@300;400&family=Caveat:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: #F0EAE0;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 300;
+    color: #2C1F14;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    padding: 1rem 2rem;
+    border-bottom: 0.5px solid #C4B49E;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #F0EAE0;
+    z-index: 10;
+  }
+
+  .header-left {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .header-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 18px;
+    color: #2C1F14;
+  }
+
+  .header-feature {
+    font-family: 'Caveat', cursive;
+    font-size: 12px;
+    color: #A89880;
+    max-width: 500px;
+    line-height: 1.4;
+    display: none;
+  }
+
+  .header-meta {
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #A89880;
+    text-align: right;
+  }
+
+  .palette-strip {
+    display: flex;
+    gap: 3px;
+    margin-top: 4px;
+    justify-content: flex-end;
+  }
+
+  .swatch {
+    width: 16px;
+    height: 4px;
+    border-radius: 2px;
+  }
+
+  main {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+  }
+
+  svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .panel {
+    position: absolute;
+    right: 24px;
+    top: 24px;
+    background: #EDE4D3;
+    border: 0.5px solid #C4B49E;
+    border-radius: 8px;
+    padding: 1.25rem;
+    width: 240px;
+    font-size: 12px;
+    transition: opacity 0.3s;
+    z-index: 10;
+  }
+
+  .panel-label {
+    font-size: 9px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: #A89880;
+    margin-bottom: 8px;
+  }
+
+  .panel-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 16px;
+    color: #2C1F14;
+    margin-bottom: 4px;
+    line-height: 1.3;
+  }
+
+  .panel-connections {
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: #A89880;
+    margin-bottom: 10px;
+  }
+
+  .panel-body {
+    font-size: 12px;
+    color: #5C4A38;
+    line-height: 1.7;
+  }
+
+  .panel-actions {
+    margin-top: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .panel-btn {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    padding: 4px 10px;
+    background: #E4D9CC;
+    border: 0.5px solid #C4B49E;
+    color: #5C4A38;
+    border-radius: 4px;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+  }
+
+  .panel-btn:hover { background: #D9CCBC; }
+
+  .legend {
+    position: absolute;
+    left: 24px;
+    bottom: 24px;
+    background: #EDE4D3;
+    border: 0.5px solid #C4B49E;
+    border-radius: 8px;
+    padding: 1rem;
+    z-index: 10;
+  }
+
+  .legend-title {
+    font-size: 9px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: #A89880;
+    margin-bottom: 8px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #7A6855;
+    margin-bottom: 5px;
+  }
+
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .hint {
+    position: absolute;
+    left: 24px;
+    top: 24px;
+    font-family: 'Caveat', cursive;
+    font-size: 14px;
+    color: #B5A08A;
+    z-index: 10;
+  }
+
+  .node circle {
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+
+  .node text {
+    pointer-events: none;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 300;
+    fill: #F0EAE0;
+    font-size: 9px;
+    text-anchor: middle;
+    dominant-baseline: middle;
+  }
+
+  .link {
+    stroke: #D0C0AA;
+    stroke-width: 0.75;
+    fill: none;
+  }
+
+  .node.faded circle { opacity: 0.25; }
+  .node.faded text { opacity: 0.25; }
+  .link.faded { opacity: 0.1; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <div class="header-title">The Edit</div>
+    <div class="header-feature" id="feature-text"></div>
+  </div>
+  <div class="header-meta">
+    <div id="issue-meta">loading...</div>
+    <div class="palette-strip" id="palette-strip"></div>
+  </div>
+</header>
+
+<main>
+  <div class="hint">drag to explore · click a node to inspect</div>
+  <svg id="graph"></svg>
+
+  <div class="panel" id="panel">
+    <div class="panel-label">your taste graph</div>
+    <div class="panel-name" id="panel-name">loading your profile...</div>
+    <div class="panel-connections" id="panel-connections"></div>
+    <div class="panel-body" id="panel-body">fetching your aesthetic world</div>
+    <div class="panel-actions" id="panel-actions"></div>
+  </div>
+
+  <div class="legend">
+    <div class="legend-title">node types</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#4E3D2C"></div>archetype</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#8C8477"></div>motif</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#B5A48F"></div>brand</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#6E6457"></div>reading</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#C4B49E"></div>palette</div>
+  </div>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script>
+const colors = {
+  archetype: "#4E3D2C",
+  motif: "#8C8477",
+  brand: "#B5A48F",
+  reading: "#6E6457",
+  palette: "#C4B49E"
+};
+
+const radii = {
+  archetype: 28,
+  motif: 16,
+  brand: 20,
+  reading: 18,
+  palette: 24
+};
+
+let allNodes = [], allLinks = [], simulation;
+let selectedId = null;
+
+// fetch profile from Flask API
+fetch("/api/profile")
+  .then(r => r.json())
+  .then(data => {
+    if(data.error){ 
+      document.getElementById("panel-body").textContent = data.error; 
+      return; 
+    }
+    initGraph(data);
+    initHeader(data);
+  })
+  .catch(e => console.error("failed to load profile:", e));
+
+function initHeader(data){
+  document.getElementById("issue-meta").textContent = "Issue No. 01 · May 2026";
+  
+  // feature text in header
+  const ft = document.getElementById("feature-text");
+  ft.textContent = data.feature.split(".")[0] + ".";
+  ft.style.display = "block";
+
+  // palette swatches
+  const strip = document.getElementById("palette-strip");
+  data.palette.hex_codes.forEach(hex => {
+    const s = document.createElement("div");
+    s.className = "swatch";
+    s.style.background = hex;
+    strip.appendChild(s);
+  });
+}
+
+function initGraph(data){
+  allNodes = data.nodes.map(n => ({...n}));
+  allLinks = data.edges.map(([s,t]) => ({source:s, target:t}));
+
+  const svg = d3.select("#graph");
+  const W = svg.node().clientWidth;
+  const H = svg.node().clientHeight;
+
+  // zoom
+  const g = svg.append("g");
+  svg.call(d3.zoom()
+    .scaleExtent([0.3, 3])
+    .on("zoom", e => g.attr("transform", e.transform))
+  );
+
+  // simulation
+  simulation = d3.forceSimulation(allNodes)
+    .force("link", d3.forceLink(allLinks)
+      .id(d => d.id)
+      .distance(d => {
+        const types = [d.source.type, d.target.type];
+        if(types.includes("palette")) return 180;
+        if(types.includes("archetype")) return 140;
+        return 100;
+      })
+    )
+    .force("charge", d3.forceManyBody().strength(-300))
+    .force("center", d3.forceCenter(W/2, H/2))
+    .force("collision", d3.forceCollide().radius(d => radii[d.type]+10));
+
+  // links
+  const link = g.append("g")
+    .selectAll("line")
+    .data(allLinks)
+    .join("line")
+    .attr("class", "link");
+
+  // nodes
+  const node = g.append("g")
+    .selectAll("g")
+    .data(allNodes)
+    .join("g")
+    .attr("class", "node")
+    .call(d3.drag()
+      .on("start", (e,d) => {
+        if(!e.active) simulation.alphaTarget(0.3).restart();
+        d.fx = d.x; d.fy = d.y;
+      })
+      .on("drag", (e,d) => { d.fx = e.x; d.fy = e.y; })
+      .on("end", (e,d) => {
+        if(!e.active) simulation.alphaTarget(0);
+        d.fx = null; d.fy = null;
+      })
+    )
+    .on("click", (e,d) => {
+      e.stopPropagation();
+      selectNode(d, node, link);
+    });
+
+  // circles
+  node.append("circle")
+    .attr("r", d => radii[d.type] || 16)
+    .attr("fill", d => colors[d.type] || "#8C8477");
+
+  // labels
+  node.each(function(d){
+    const el = d3.select(this);
+    const r = radii[d.type] || 16;
+    const words = d.label.split(" ");
+    if(words.length === 1){
+      el.append("text").text(d.label);
+    } else if(words.length === 2){
+      el.append("text").attr("dy", "-5").text(words[0]);
+      el.append("text").attr("dy", "7").text(words[1]);
+    } else {
+      el.append("text").attr("dy", "-5").text(words.slice(0,2).join(" "));
+      el.append("text").attr("dy", "7").text(words.slice(2).join(" "));
+    }
+  });
+
+  // tick
+  simulation.on("tick", () => {
+    link
+      .attr("x1", d => d.source.x)
+      .attr("y1", d => d.source.y)
+      .attr("x2", d => d.target.x)
+      .attr("y2", d => d.target.y);
+    node.attr("transform", d => `translate(${d.x},${d.y})`);
+  });
+
+  // click background to deselect
+  svg.on("click", () => {
+    selectedId = null;
+    node.classed("faded", false);
+    link.classed("faded", false);
+    resetPanel();
+  });
+
+  // init panel
+  resetPanel();
+}
+
+function selectNode(d, node, link){
+  selectedId = d.id;
+
+  // find connected node ids
+  const connIds = new Set();
+  allLinks.forEach(l => {
+    const sid = typeof l.source === "object" ? l.source.id : l.source;
+    const tid = typeof l.target === "object" ? l.target.id : l.target;
+    if(sid === d.id) connIds.add(tid);
+    if(tid === d.id) connIds.add(sid);
+  });
+
+  // fade unconnected
+  node.classed("faded", n => n.id !== d.id && !connIds.has(n.id));
+  link.classed("faded", l => {
+    const sid = typeof l.source === "object" ? l.source.id : l.source;
+    const tid = typeof l.target === "object" ? l.target.id : l.target;
+    return sid !== d.id && tid !== d.id;
+  });
+
+  // connected node labels
+  const connLabels = allNodes
+    .filter(n => connIds.has(n.id))
+    .map(n => n.label)
+    .slice(0,4)
+    .join(", ");
+
+  // update panel
+  document.getElementById("panel-name").textContent = d.label;
+  document.getElementById("panel-connections").textContent = 
+    connLabels ? `connected to: ${connLabels}` : "";
+  document.getElementById("panel-body").textContent = d.desc || "";
+
+  // actions
+  const actions = document.getElementById("panel-actions");
+  actions.innerHTML = "";
+  if(d.url){
+    const a = document.createElement("a");
+    a.className = "panel-btn";
+    a.href = d.url;
+    a.target = "_blank";
+    a.textContent = d.type === "reading" ? "read →" : "visit →";
+    actions.appendChild(a);
+  }
+  if(d.publication){
+    const p = document.createElement("span");
+    p.className = "panel-btn";
+    p.style.cursor = "default";
+    p.textContent = d.publication;
+    actions.appendChild(p);
+  }
+
+  document.getElementById("panel-label") && 
+    (document.getElementById("panel-label").textContent = d.type);
+}
+
+function resetPanel(){
+  document.getElementById("panel-name").textContent = "your taste graph";
+  document.getElementById("panel-connections").textContent = "";
+  document.getElementById("panel-body").textContent = 
+    "click any node to explore your taste connections";
+  document.getElementById("panel-actions").innerHTML = "";
+}
+</script>
+</body>
+</html>
