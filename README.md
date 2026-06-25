@@ -1,1 +1,1 @@
-# zine-generator
+# Taste Graph Generator
