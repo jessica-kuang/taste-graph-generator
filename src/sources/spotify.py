@@ -62,33 +62,37 @@ class SpotifySource:
         config.save_token(self.name, refreshed)
         return refreshed
 
-    def _get_top_artists(self) -> list[dict]:
+    def _get(self, path: str, params: dict) -> dict:
         token = config.load_token(self.name)
         if token is None:
             raise RuntimeError("Spotify is not connected yet, visit /auth/spotify/start first")
 
         headers = {"Authorization": f"Bearer {token['access_token']}"}
-        response = requests.get(
-            f"{API_BASE}/me/top/artists", headers=headers, params={"time_range": "medium_term", "limit": 20}
-        )
+        response = requests.get(f"{API_BASE}{path}", headers=headers, params=params)
         if response.status_code == 401:
             token = self._refresh(token)
             headers = {"Authorization": f"Bearer {token['access_token']}"}
-            response = requests.get(
-                f"{API_BASE}/me/top/artists", headers=headers, params={"time_range": "medium_term", "limit": 20}
-            )
+            response = requests.get(f"{API_BASE}{path}", headers=headers, params=params)
         response.raise_for_status()
-        return response.json().get("items", [])
+        return response.json()
 
-    def _describe_taste(self, client: anthropic.Anthropic, genres: list[str] = None, artists: list[str] = None) -> list[str]:
+    def _get_top_artists(self) -> list[dict]:
+        return self._get("/me/top/artists", {"time_range": "medium_term", "limit": 20}).get("items", [])
+
+    def _get_top_tracks(self) -> list[dict]:
+        return self._get("/me/top/tracks", {"time_range": "medium_term", "limit": 20}).get("items", [])
+
+    def _describe_taste(self, client: anthropic.Anthropic, genres: list[str] = None, artists: list[str] = None, tracks: list[str] = None) -> list[str]:
         if genres:
             signal = f"Someone's top Spotify genres are: {', '.join(genres)}."
         else:
             # Spotify's API has stopped returning genre tags for most artists,
-            # so fall back to inferring mood from the artist names themselves,
-            # the same "Claude names the raw signal" pattern palette.py already
-            # uses for k-means colors.
+            # so fall back to inferring mood from artist and track names
+            # directly, the same "Claude names the raw signal" pattern
+            # palette.py already uses for k-means colors.
             signal = f"Someone's top Spotify artists are: {', '.join(artists)}."
+            if tracks:
+                signal += f" Their top tracks are: {', '.join(tracks)}."
 
         message = client.messages.create(
             model="claude-sonnet-5",
@@ -106,17 +110,27 @@ generic. Respond with ONLY a comma-separated list, nothing else."""
 
     def fetch_taste_signals(self) -> dict:
         artists = self._get_top_artists()
+        tracks = self._get_top_tracks()
+
         genre_counts = Counter(genre for artist in artists for genre in artist.get("genres") or [])
         top_genres = [genre for genre, _ in genre_counts.most_common(10)]
         reference_artists = [artist["name"] for artist in artists[:5]]
+        reference_tracks = [
+            f"{track['name']} by {track['artists'][0]['name']}" for track in tracks[:5] if track.get("artists")
+        ]
 
         descriptors = []
         if top_genres:
             descriptors = self._describe_taste(anthropic.Anthropic(), genres=top_genres)
         elif reference_artists:
-            descriptors = self._describe_taste(anthropic.Anthropic(), artists=reference_artists)
+            track_names = [track["name"] for track in tracks[:10]]
+            descriptors = self._describe_taste(anthropic.Anthropic(), artists=reference_artists, tracks=track_names)
 
-        music_mood = {"descriptors": descriptors, "reference_artists": reference_artists}
+        music_mood = {
+            "descriptors": descriptors,
+            "reference_artists": reference_artists,
+            "reference_tracks": reference_tracks,
+        }
         config.PROFILES_DIR.mkdir(parents=True, exist_ok=True)
         (config.PROFILES_DIR / "music_mood.json").write_text(json.dumps(music_mood, indent=2))
         return music_mood

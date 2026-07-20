@@ -38,6 +38,7 @@ def build_context(clusters, palette, music_mood=None):
     Their music taste (from Spotify listening history):
     {', '.join(music_mood['descriptors'])}
     Reference artists: {', '.join(music_mood.get('reference_artists', []))}
+    Reference tracks: {', '.join(music_mood.get('reference_tracks', []))}
 """
 
     context = f"""You are writing for a specific person based on careful observation of their taste data.

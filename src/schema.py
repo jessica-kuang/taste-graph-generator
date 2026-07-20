@@ -35,6 +35,7 @@ class CultureInterests(BaseModel):
 class MusicMood(BaseModel):
     descriptors: List[str]
     reference_artists: List[str]
+    reference_tracks: List[str] = []
 
 class ContentInterests(BaseModel):
     fashion: FashionInterests
