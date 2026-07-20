@@ -96,7 +96,7 @@ def label_cluster(image_path: str, client: anthropic.Anthropic):
     media_type = media_type_map.get(suffix, "image/jpeg")
 
     message = client.messages.create(
-        model="claude-sonnet-4-20250514",
+        model="claude-sonnet-5",
         max_tokens=200,
         messages=[
             {

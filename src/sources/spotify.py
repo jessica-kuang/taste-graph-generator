@@ -80,15 +80,24 @@ class SpotifySource:
         response.raise_for_status()
         return response.json().get("items", [])
 
-    def _describe_genres(self, genres: list[str], client: anthropic.Anthropic) -> list[str]:
+    def _describe_taste(self, client: anthropic.Anthropic, genres: list[str] = None, artists: list[str] = None) -> list[str]:
+        if genres:
+            signal = f"Someone's top Spotify genres are: {', '.join(genres)}."
+        else:
+            # Spotify's API has stopped returning genre tags for most artists,
+            # so fall back to inferring mood from the artist names themselves,
+            # the same "Claude names the raw signal" pattern palette.py already
+            # uses for k-means colors.
+            signal = f"Someone's top Spotify artists are: {', '.join(artists)}."
+
         message = client.messages.create(
-            model="claude-sonnet-4-20250514",
+            model="claude-sonnet-5",
             max_tokens=100,
             messages=[{
                 "role": "user",
-                "content": f"""Someone's top Spotify genres are: {', '.join(genres)}.
+                "content": f"""{signal}
 
-Turn these into 3-5 evocative one-or-two-word mood descriptors for their
+Turn this into 3-5 evocative one-or-two-word mood descriptors for their
 listening taste (e.g. "melancholic", "cinematic", "sun-warmed"). Never
 generic. Respond with ONLY a comma-separated list, nothing else."""
             }]
@@ -97,11 +106,15 @@ generic. Respond with ONLY a comma-separated list, nothing else."""
 
     def fetch_taste_signals(self) -> dict:
         artists = self._get_top_artists()
-        genre_counts = Counter(genre for artist in artists for genre in artist.get("genres", []))
+        genre_counts = Counter(genre for artist in artists for genre in artist.get("genres") or [])
         top_genres = [genre for genre, _ in genre_counts.most_common(10)]
         reference_artists = [artist["name"] for artist in artists[:5]]
 
-        descriptors = self._describe_genres(top_genres, anthropic.Anthropic()) if top_genres else []
+        descriptors = []
+        if top_genres:
+            descriptors = self._describe_taste(anthropic.Anthropic(), genres=top_genres)
+        elif reference_artists:
+            descriptors = self._describe_taste(anthropic.Anthropic(), artists=reference_artists)
 
         music_mood = {"descriptors": descriptors, "reference_artists": reference_artists}
         config.PROFILES_DIR.mkdir(parents=True, exist_ok=True)

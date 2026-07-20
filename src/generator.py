@@ -64,7 +64,7 @@ poetic. Never generic. Never listicle energy. Concise — 2-4 sentences per node
 # generate archetype description
 def generate_archetype(archetype, motifs, mood, context, client):
     message = client.messages.create(
-        model = "claude-sonnet-4-20250514",
+        model = "claude-sonnet-5",
         max_tokens=200,
         messages=[{
             "role": "user",
@@ -82,7 +82,7 @@ Respond with ONLY the description text, nothing else."""
 # generate brand description
 def generate_brand_node(brand, context, client):
     message = client.messages.create(
-        model = "claude-sonnet-4-20250514",
+        model = "claude-sonnet-5",
         max_tokens=150,
         messages=[{
             "role": "user",
@@ -99,7 +99,7 @@ Respond with ONLY the text, nothing else."""
 # ---- generate read description ----
 def generate_read_node(article, context, client):
     message = client.messages.create(
-        model="claude-sonnet-4-20250514",
+        model="claude-sonnet-5",
         max_tokens=150,
         messages=[{
             "role": "user",
@@ -118,7 +118,7 @@ Respond with ONLY the text, nothing else."""
 # ---- generate feature essay ----
 def generate_feature(archetypes, context, client):
     message = client.messages.create(
-        model="claude-sonnet-4-20250514",
+        model="claude-sonnet-5",
         max_tokens=400,
         messages=[{
             "role": "user",
