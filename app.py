@@ -1,8 +1,15 @@
 import json
+import sys
 from pathlib import Path
-from flask import Flask, render_template, jsonify
+from flask import Flask, render_template, jsonify, redirect, url_for
+
+sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
+import config
+from sources.routes import bp as sources_bp
 
 app = Flask(__name__)
+app.secret_key = config.FLASK_SECRET_KEY
+app.register_blueprint(sources_bp)
 
 def load_graph_content():
     path = Path("data/profiles/graph_content.json")
@@ -20,6 +27,8 @@ def load_cluster_labels():
 
 @app.route("/")
 def index():
+    if not load_graph_content():
+        return redirect(url_for("sources.connect"))
     return render_template("graph.html")
 
 @app.route("/api/profile")

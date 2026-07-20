@@ -12,10 +12,17 @@ def load_profile_data():
         reads = json.load(f)
     with open("data/profiles/brand_matches.json") as f:
         brands = json.load(f)
-    return clusters, palette, reads, brands
+
+    music_mood = None
+    music_mood_path = Path("data/profiles/music_mood.json")
+    if music_mood_path.exists():
+        with open(music_mood_path) as f:
+            music_mood = json.load(f)
+
+    return clusters, palette, reads, brands, music_mood
 
 # build context string
-def build_context(clusters, palette):
+def build_context(clusters, palette, music_mood=None):
     archetypes = []
     motifs = []
     moods = []
@@ -24,6 +31,14 @@ def build_context(clusters, palette):
         archetypes.append(label["archetype"])
         motifs.extend(label["motifs"])
         moods.append(label["mood"])
+
+    music_section = ""
+    if music_mood and music_mood.get("descriptors"):
+        music_section = f"""
+    Their music taste (from Spotify listening history):
+    {', '.join(music_mood['descriptors'])}
+    Reference artists: {', '.join(music_mood.get('reference_artists', []))}
+"""
 
     context = f"""You are writing for a specific person based on careful observation of their taste data.
     Their aesthetic archetypes (clusters inferred from their actual images):
@@ -38,10 +53,10 @@ def build_context(clusters, palette):
     Their color palette: {palette['palette_name']}
     Palette mood: {palette['palette_mood']}
     Hex codes: {', '.join(palette['hex_codes'])}
-
-    Write in second person. Be specific and observational — write as if you've been 
-studying this person's images, not describing a generic aesthetic category. 
-Tone: like a very chic, perceptive older sister. Essayistic, warm, occasionally 
+{music_section}
+    Write in second person. Be specific and observational — write as if you've been
+studying this person's images, not describing a generic aesthetic category.
+Tone: like a very chic, perceptive older sister. Essayistic, warm, occasionally
 poetic. Never generic. Never listicle energy. Concise — 2-4 sentences per node.
     """
     return context, archetypes, motifs
@@ -120,8 +135,8 @@ Respond with ONLY the essay text, nothing else."""
     return message.content[0].text.strip()
 
 # ---- assemble graph content ----
-def assemble_graph_content(clusters, palette, reads, brands, client):
-    context, archetypes, motifs = build_context(clusters, palette)
+def assemble_graph_content(clusters, palette, reads, brands, client, music_mood=None):
+    context, archetypes, motifs = build_context(clusters, palette, music_mood)
     graph_content = {
         "archetypes": [],
         "brands": [],
@@ -195,7 +210,7 @@ def save_graph_content(content, output_path: str):
 # ---- main ----
 if __name__ == "__main__":
     client = anthropic.Anthropic()
-    clusters, palette, reads, brands = load_profile_data()
-    content = assemble_graph_content(clusters, palette, reads, brands, client)
+    clusters, palette, reads, brands, music_mood = load_profile_data()
+    content = assemble_graph_content(clusters, palette, reads, brands, client, music_mood)
     save_graph_content(content, "data/profiles/graph_content.json")
 
