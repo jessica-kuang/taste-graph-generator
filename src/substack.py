@@ -1,5 +1,7 @@
 import json
+import re
 import numpy as np
+import anthropic
 import feedparser
 from pathlib import Path
 from sentence_transformers import SentenceTransformer
@@ -11,16 +13,49 @@ def load_model():
     model = SentenceTransformer("all-MiniLM-L6-v2")
     return model
 
-# fetch articles from rss
-def fetch_articles(seed_path: str):
-    with open(seed_path) as f:
-        seed_data = json.load(f)
+# search the web for real Substack publications matching this taste profile
+def discover_publications(profile_text: str, client: anthropic.Anthropic) -> list:
+    prompt = f"""Someone's aesthetic and intellectual taste profile, inferred from
+their own images:
 
+{profile_text}
+
+Search the web to find 5-6 real, currently active Substack publications this
+person would genuinely love reading, ones they likely haven't heard of, not
+the most obvious mainstream picks. Verify each publication is real and still
+publishing.
+
+Respond with ONLY a JSON array, nothing else, in this exact format:
+[{{"name": "Publication Name", "url": "https://handle.substack.com"}}]"""
+
+    tools = [{"type": "web_search_20260209", "name": "web_search", "max_uses": 8}]
+    messages = [{"role": "user", "content": prompt}]
+
+    response = client.messages.create(model="claude-sonnet-5", max_tokens=3000, tools=tools, messages=messages)
+    while response.stop_reason == "pause_turn":
+        # server-side search hit its per-turn iteration cap before finishing;
+        # resend to let it continue where it left off
+        messages = [{"role": "user", "content": prompt}, {"role": "assistant", "content": response.content}]
+        response = client.messages.create(model="claude-sonnet-5", max_tokens=3000, tools=tools, messages=messages)
+
+    text_blocks = [b.text for b in response.content if b.type == "text"]
+    if not text_blocks:
+        raise RuntimeError(f"no text in response, stop_reason={response.stop_reason}")
+    text = text_blocks[-1]
+    text = text.strip()
+    if text.startswith("```"):
+        text = text.strip("`")
+        text = text.removeprefix("json").strip()
+    return json.loads(text)
+
+# fetch articles from rss
+def fetch_articles(publications: list):
     articles = []
-    for pub in seed_data["publications"]:
+    for pub in publications:
+        feed_url = pub["url"].rstrip("/") + "/feed"
         print(f"fetching {pub['name']}...")
         try:
-            feed = feedparser.parse(pub["url"])
+            feed = feedparser.parse(feed_url)
             for entry in feed.entries[:5]:
                 title = entry.get("title", "")
                 summary = entry.get("summary", "")
@@ -28,7 +63,6 @@ def fetch_articles(seed_path: str):
                 published = entry.get("published", "")
 
                 # cleaned summary - strip html tags roughly
-                import re
                 summary_clean = re.sub(r'<[^>]+>', '', summary)[:500]
 
                 if title and summary_clean:
@@ -44,17 +78,18 @@ def fetch_articles(seed_path: str):
             print(f"error fetching {pub['name']}: {e}")
     print(f"fetched {len(articles)} articles total")
     return articles
+
 # load taste profile keywords
 def load_profile_keywords(cluster_labels_path: str, palette_path: str):
     with open(cluster_labels_path) as f:
         cluster_data = json.load(f)
-    
+
     with open(palette_path) as f:
         palette_data = json.load(f)
 
     # extract all meaningful keywords from taste profile
     keywords = []
-    
+
     for label in cluster_data["labels"].values():
         keywords.append(label["archetype"])
         keywords.extend(label["motifs"])
@@ -106,13 +141,19 @@ def save_curated_reads(articles, output_path: str):
 
 # main
 if __name__ == "__main__":
+    client = anthropic.Anthropic()
     model = load_model()
-    articles = fetch_articles("substack/seed_publications.json")
+
     profile_text = load_profile_keywords(
         "data/profiles/cluster_labels.json",
         "data/profiles/palette.json"
     )
 
+    print("discovering substack publications...")
+    publications = discover_publications(profile_text, client)
+    print(f"discovered: {[p['name'] for p in publications]}")
+
+    articles = fetch_articles(publications)
     scored = score_articles(articles, profile_text, model)
     top_articles = select_top_articles(scored, n=3)
     save_curated_reads(top_articles, "data/profiles/curated_reads.json")

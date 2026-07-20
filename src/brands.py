@@ -1,73 +1,72 @@
 import json
 from pathlib import Path
 
-# load brand catalog
-def load_catalog(catalog_path: str):
-    with open(catalog_path) as f:
-        data = json.load(f)
-    return data["brands"]
+import anthropic
 
-# load taste profile
-def load_taste_signals(cluster_labels_path: str):
+# build a flat description of the taste profile for prompting
+def load_taste_profile(cluster_labels_path: str, palette_path: str):
     with open(cluster_labels_path) as f:
         cluster_data = json.load(f)
+    with open(palette_path) as f:
+        palette_data = json.load(f)
 
     archetypes = []
     motifs = []
-
+    moods = []
     for label in cluster_data["labels"].values():
-        archetypes.append(label["archetype"].lower())
-        motifs.extend([m.lower() for m in label["motifs"]])
+        archetypes.append(label["archetype"])
+        motifs.extend(label["motifs"])
+        moods.append(label["mood"])
 
-    return archetypes, motifs
+    return (
+        f"Archetypes: {', '.join(archetypes)}\n"
+        f"Recurring motifs: {', '.join(motifs[:10])}\n"
+        f"Mood: {'; '.join(moods)}\n"
+        f"Color palette: {palette_data['palette_name']} ({palette_data['palette_mood']})"
+    )
 
-# score a single brand
-def score_brand(brand, archetypes, motifs):
-    score = 0
-    for tag in brand.get("aesthetic_tags", []):
-        if any(tag.lower() in arch or arch in tag.lower() for arch in archetypes):
-            score += 2
+# search the web for real brands matching this specific taste profile
+def discover_brands(profile_text: str, client: anthropic.Anthropic) -> dict:
+    prompt = f"""Someone's aesthetic taste profile, inferred from their own images:
 
-    for tag in brand.get("motif_tags", []):
-        if any(tag.lower() in motif or motif in tag.lower() for motif in motifs):
-            score += 1
+{profile_text}
 
-    return score
+Search the web to find real, currently active brands that genuinely fit this
+person's specific aesthetic, not generic recommendations. Find 2 fashion
+brands, 2 beauty brands, and 2 lifestyle/home brands. Verify each brand is
+real and currently operating, and find its actual website URL.
 
-# match brands
-def match_brands(brands, archetypes, motifs, top_n: int = 2):
-    scored = []
-    for brand in brands:
-        s = score_brand(brand, archetypes, motifs)
-        scored.append({**brand, "score": s})
-    
-    # group by category
-    categories = {}
-    for brand in scored:
-        cat = brand["category"]
-        if cat not in categories:
-            categories[cat] = []
-        categories[cat].append(brand)
+For each brand, write 1-2 sentences explaining why it fits THIS profile
+specifically, connecting it to the archetypes and motifs above, not a
+generic description of the brand.
 
-    # sort each category and take top n
-    results = {}
-    for cat, cat_brands in categories.items():
-        sorted_brands = sorted(cat_brands, key=lambda x: x["score"], reverse=True)
-        results[cat] = sorted_brands[:top_n]
-    
-    return results
+Respond with ONLY a JSON object, nothing else, in this exact format:
+{{
+  "fashion": [{{"name": "...", "url": "...", "description": "..."}}, ...],
+  "beauty": [{{"name": "...", "url": "...", "description": "..."}}, ...],
+  "lifestyle": [{{"name": "...", "url": "...", "description": "..."}}, ...]
+}}"""
 
-# display results
-def display_matches(matches):
-    print(f"\n--- brand recs---")
-    for category, brands in matches.items():
-        print(f"n\{category.upper()}")
-        for brand in brands:
-            print(f"   {brand['name']} (score: {brand['score']})")
-            print(f"   {brand['description']}")
-            print(f"   {brand['url']}")
+    tools = [{"type": "web_search_20260209", "name": "web_search", "max_uses": 8}]
+    messages = [{"role": "user", "content": prompt}]
 
+    response = client.messages.create(model="claude-sonnet-5", max_tokens=2000, tools=tools, messages=messages)
+    while response.stop_reason == "pause_turn":
+        # server-side search hit its per-turn iteration cap before finishing;
+        # resend to let it continue where it left off
+        messages = [{"role": "user", "content": prompt}, {"role": "assistant", "content": response.content}]
+        response = client.messages.create(model="claude-sonnet-5", max_tokens=2000, tools=tools, messages=messages)
 
+    text_blocks = [b.text for b in response.content if b.type == "text"]
+    if not text_blocks:
+        raise RuntimeError(f"no text in response, stop_reason={response.stop_reason}")
+    text = text_blocks[-1].strip()
+    if text.startswith("```"):
+        text = text.strip("`")
+        text = text.removeprefix("json").strip()
+    return json.loads(text)
+
+# save results
 def save_matches(matches, output_path: str):
     path = Path(output_path)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -77,12 +76,14 @@ def save_matches(matches, output_path: str):
 
 # main
 if __name__ == "__main__":
-    brands = load_catalog("brands/brand_catalog.json")
-    archetypes, motifs = load_taste_signals("data/profiles/cluster_labels.json")
+    client = anthropic.Anthropic()
+    profile_text = load_taste_profile("data/profiles/cluster_labels.json", "data/profiles/palette.json")
+    print("discovering brands...")
 
-    print(f"archetypes: {archetypes}")
-    print(f"motifs: {motifs[:5]}...")
+    matches = discover_brands(profile_text, client)
+    for category, brands in matches.items():
+        print(f"\n{category.upper()}")
+        for brand in brands:
+            print(f"  {brand['name']} — {brand['url']}")
 
-    matches = match_brands(brands, archetypes, motifs)
-    display_matches(matches)
     save_matches(matches, "data/profiles/brand_matches.json")
