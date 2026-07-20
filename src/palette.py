@@ -71,7 +71,11 @@ def describe_palette(hex_codes: list, archetypes: list, client: anthropic.Anthro
             }
         ]
     )
-    return json.loads(message.content[0].text.strip())
+    response_text = message.content[0].text.strip()
+    if response_text.startswith("```"):
+        response_text = response_text.strip("`")
+        response_text = response_text.removeprefix("json").strip()
+    return json.loads(response_text)
 
 # load image paths
 def load_image_paths(embeddings_dir: str, handle: str):

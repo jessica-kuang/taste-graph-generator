@@ -127,6 +127,9 @@ def label_cluster(image_path: str, client: anthropic.Anthropic):
         ]
     )
     response_text = message.content[0].text.strip()
+    if response_text.startswith("```"):
+        response_text = response_text.strip("`")
+        response_text = response_text.removeprefix("json").strip()
     return json.loads(response_text)
 
 # build visual identity
