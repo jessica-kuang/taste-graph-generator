@@ -13,8 +13,19 @@ def load_model():
     model = SentenceTransformer("all-MiniLM-L6-v2")
     return model
 
+# catches stray control characters (e.g. a tab mid-word) from occasional
+# decoder glitches on accented characters, seen once in testing
+def _has_control_chars(value) -> bool:
+    if isinstance(value, str):
+        return any(ord(c) < 0x20 for c in value)
+    if isinstance(value, dict):
+        return any(_has_control_chars(v) for v in value.values())
+    if isinstance(value, list):
+        return any(_has_control_chars(v) for v in value)
+    return False
+
 # search the web for real Substack publications matching this taste profile
-def discover_publications(profile_text: str, client: anthropic.Anthropic) -> list:
+def discover_publications(profile_text: str, client: anthropic.Anthropic, max_attempts: int = 3) -> list:
     prompt = f"""Someone's aesthetic and intellectual taste profile, inferred from
 their own images:
 
@@ -23,30 +34,60 @@ their own images:
 Search the web to find 5-6 real, currently active Substack publications this
 person would genuinely love reading, ones they likely haven't heard of, not
 the most obvious mainstream picks. Verify each publication is real and still
-publishing.
-
-Respond with ONLY a JSON array, nothing else, in this exact format:
-[{{"name": "Publication Name", "url": "https://handle.substack.com"}}]"""
+publishing."""
 
     tools = [{"type": "web_search_20260209", "name": "web_search", "max_uses": 8}]
-    messages = [{"role": "user", "content": prompt}]
+    # output_config.format guarantees valid JSON at the token level, unlike
+    # asking nicely in the prompt (which broke on both an unescaped quote and,
+    # separately, a stray control character mid-word)
+    output_config = {
+        "format": {
+            "type": "json_schema",
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "publications": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "name": {"type": "string"},
+                                "url": {"type": "string"},
+                            },
+                            "required": ["name", "url"],
+                            "additionalProperties": False,
+                        },
+                    }
+                },
+                "required": ["publications"],
+                "additionalProperties": False,
+            },
+        }
+    }
 
-    response = client.messages.create(model="claude-sonnet-5", max_tokens=3000, tools=tools, messages=messages)
-    while response.stop_reason == "pause_turn":
-        # server-side search hit its per-turn iteration cap before finishing;
-        # resend to let it continue where it left off
-        messages = [{"role": "user", "content": prompt}, {"role": "assistant", "content": response.content}]
-        response = client.messages.create(model="claude-sonnet-5", max_tokens=3000, tools=tools, messages=messages)
+    for attempt in range(max_attempts):
+        messages = [{"role": "user", "content": prompt}]
+        response = client.messages.create(
+            model="claude-sonnet-5", max_tokens=3000, tools=tools, output_config=output_config, messages=messages
+        )
+        while response.stop_reason == "pause_turn":
+            # server-side search hit its per-turn iteration cap before finishing;
+            # resend to let it continue where it left off
+            messages = [{"role": "user", "content": prompt}, {"role": "assistant", "content": response.content}]
+            response = client.messages.create(
+                model="claude-sonnet-5", max_tokens=3000, tools=tools, output_config=output_config, messages=messages
+            )
 
-    text_blocks = [b.text for b in response.content if b.type == "text"]
-    if not text_blocks:
-        raise RuntimeError(f"no text in response, stop_reason={response.stop_reason}")
-    text = text_blocks[-1]
-    text = text.strip()
-    if text.startswith("```"):
-        text = text.strip("`")
-        text = text.removeprefix("json").strip()
-    return json.loads(text)
+        text_blocks = [b.text for b in response.content if b.type == "text"]
+        if not text_blocks:
+            raise RuntimeError(f"no text in response, stop_reason={response.stop_reason}")
+        result = json.loads(text_blocks[-1])
+
+        if not _has_control_chars(result):
+            return result["publications"]
+        print(f"discovery attempt {attempt + 1} had a stray control character, retrying...")
+
+    raise RuntimeError(f"discover_publications produced control characters after {max_attempts} attempts")
 
 # fetch articles from rss
 def fetch_articles(publications: list):
@@ -149,11 +190,20 @@ if __name__ == "__main__":
         "data/profiles/palette.json"
     )
 
-    print("discovering substack publications...")
-    publications = discover_publications(profile_text, client)
-    print(f"discovered: {[p['name'] for p in publications]}")
+    articles = []
+    for attempt in range(3):
+        print("discovering substack publications...")
+        publications = discover_publications(profile_text, client)
+        print(f"discovered: {[p['name'] for p in publications]}")
 
-    articles = fetch_articles(publications)
+        articles = fetch_articles(publications)
+        if articles:
+            break
+        print(f"attempt {attempt + 1}: every discovered publication's feed was empty, retrying discovery...")
+
+    if not articles:
+        raise RuntimeError("no articles fetched after 3 discovery attempts, all feeds came back empty")
+
     scored = score_articles(articles, profile_text, model)
     top_articles = select_top_articles(scored, n=3)
     save_curated_reads(top_articles, "data/profiles/curated_reads.json")
